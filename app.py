@@ -1,36 +1,20 @@
 import os
 import sys
 import tempfile
-from flask import Flask, request, jsonify, render_template
+import gradio as gr
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from predict import load_model, predict
 
-app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max upload
-
-print("Loading DMC model...")
 model = load_model()
-print("Model ready.")
 
+def analyse(image):
+    if image is None:
+        return "No image provided", 0.0
 
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/predict", methods=["POST"])
-def run_predict():
-    if "image" not in request.files:
-        return jsonify({"error": "No image provided"}), 400
-
-    file = request.files["image"]
-    if file.filename == "":
-        return jsonify({"error": "Empty filename"}), 400
-
-    suffix = os.path.splitext(file.filename)[-1] or ".jpg"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        file.save(tmp.name)
+    # Save PIL image to temp file
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+        image.save(tmp.name)
         tmp_path = tmp.name
 
     try:
@@ -39,18 +23,25 @@ def run_predict():
     finally:
         os.unlink(tmp_path)
 
-    return jsonify({
-        "probability": probability,
-        "label": "DMC Action Required" if probability >= 0.5 else "No Action Needed",
-        "action_required": probability >= 0.5
-    })
+    pct = round(probability * 100, 1)
 
+    if probability >= 0.5:
+        label = f"🚨 DMC Action Required — {pct}% spillover probability"
+    else:
+        label = f"✅ No Action Needed — {pct}% spillover probability"
 
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok"}), 200
+    return label, probability
 
+demo = gr.Interface(
+    fn=analyse,
+    inputs=gr.Image(type="pil", label="Upload or Capture Image"),
+    outputs=[
+        gr.Text(label="Result"),
+        gr.Slider(minimum=0, maximum=1, label="Spillover Probability", interactive=False)
+    ],
+    title="DMC — Dustbin Management Committee",
+    description="Upload a dustbin image to detect garbage spillover.",
+    allow_flagging="never"
+)
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+demo.launch()
