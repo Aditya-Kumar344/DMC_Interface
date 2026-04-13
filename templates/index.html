@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DMC — Dustbin Management Committee</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;600;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --panel: #111418;
+    --border: #1e2530;
+    --accent: #00e5a0;
+    --danger: #ff3b5c;
+    --text: #c8d4e0;
+    --dim: #4a5568;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow Condensed', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 780px;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .logo-line {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-family: var(--sans);
+    font-size: clamp(42px, 8vw, 72px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: #fff;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--dim);
+    letter-spacing: 2px;
+  }
+
+  /* ── Upload Zone ── */
+  .upload-zone {
+    background: var(--panel);
+    border: 1.5px dashed var(--border);
+    border-radius: 4px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,160,0.04);
+  }
+
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+    filter: grayscale(1) opacity(0.5);
+    transition: filter 0.2s;
+  }
+
+  .upload-zone:hover .upload-icon { filter: none; }
+
+  .upload-label {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .upload-sub {
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  /* ── Divider ── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 24px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Camera button ── */
+  .btn-camera {
+    width: 100%;
+    padding: 16px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn-camera:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── Preview ── */
+  #preview-section {
+    display: none;
+    margin-top: 32px;
+  }
+
+  .preview-header {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  #preview-img {
+    width: 100%;
+    max-height: 380px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: #000;
+    display: block;
+  }
+
+  /* Camera feed */
+  #camera-section {
+    display: none;
+    margin-top: 32px;
+  }
+
+  #camera-feed {
+    width: 100%;
+    max-height: 380px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: #000;
+    display: block;
+  }
+
+  #canvas { display: none; }
+
+  .camera-controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .btn-capture {
+    flex: 1;
+    padding: 14px;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .btn-capture:hover { opacity: 0.85; }
+
+  .btn-cancel {
+    padding: 14px 20px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    color: var(--dim);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .btn-cancel:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ── Analyse button ── */
+  #btn-analyse {
+    display: none;
+    width: 100%;
+    margin-top: 20px;
+    padding: 18px;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    color: #000;
+    font-family: var(--sans);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  #btn-analyse:hover { opacity: 0.85; transform: translateY(-1px); }
+  #btn-analyse:active { transform: translateY(0); }
+
+  /* ── Scanning animation ── */
+  #scanning {
+    display: none;
+    margin-top: 32px;
+    padding: 32px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  .scan-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .scan-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: scan 1.4s ease-in-out infinite;
+  }
+
+  @keyframes scan {
+    0% { width: 0%; margin-left: 0; }
+    50% { width: 60%; margin-left: 20%; }
+    100% { width: 0%; margin-left: 100%; }
+  }
+
+  .scan-text {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── Result ── */
+  #result {
+    display: none;
+    margin-top: 32px;
+    border-radius: 4px;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-banner {
+    padding: 32px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .result-banner.safe {
+    background: rgba(0,229,160,0.08);
+    border: 1.5px solid var(--accent);
+  }
+
+  .result-banner.danger {
+    background: rgba(255,59,92,0.08);
+    border: 1.5px solid var(--danger);
+  }
+
+  .result-icon { font-size: 40px; flex-shrink: 0; }
+
+  .result-label {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .result-banner.safe .result-label { color: var(--accent); }
+  .result-banner.danger .result-label { color: var(--danger); }
+
+  .result-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  /* Probability meter */
+  .prob-section {
+    background: var(--panel);
+    border: 1.5px solid var(--border);
+    border-top: none;
+    padding: 20px 28px;
+  }
+
+  .prob-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .prob-track {
+    width: 100%;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .prob-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .prob-fill.safe { background: var(--accent); }
+  .prob-fill.danger { background: var(--danger); }
+
+  .prob-value {
+    font-family: var(--mono);
+    font-size: 28px;
+    color: #fff;
+    font-weight: 400;
+  }
+
+  /* ── Reset ── */
+  #btn-reset {
+    display: none;
+    width: 100%;
+    margin-top: 16px;
+    padding: 14px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    color: var(--dim);
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  #btn-reset:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── Footer ── */
+  footer {
+    margin-top: 60px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo-line">// system active</div>
+    <h1>D<span>M</span>C</h1>
+    <p class="subtitle">Dustbin Management Committee — Spillover Detection System</p>
+  </header>
+
+  <!-- Upload Zone -->
+  <div class="upload-zone" id="upload-zone">
+    <input type="file" id="file-input" accept="image/*"/>
+    <span class="upload-icon">🗑️</span>
+    <div class="upload-label">Drop image here or click to upload</div>
+    <div class="upload-sub">JPG · PNG · WEBP supported</div>
+  </div>
+
+  <div class="divider">or</div>
+
+  <!-- Camera button -->
+  <button class="btn-camera" id="btn-camera">
+    <span>📷</span> Capture from Camera
+  </button>
+
+  <!-- Camera feed -->
+  <div id="camera-section">
+    <div class="preview-header">// live feed</div>
+    <video id="camera-feed" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div class="camera-controls">
+      <button class="btn-capture" id="btn-capture">⚡ Capture</button>
+      <button class="btn-cancel" id="btn-cancel">✕ Cancel</button>
+    </div>
+  </div>
+
+  <!-- Image Preview -->
+  <div id="preview-section">
+    <div class="preview-header">// image loaded</div>
+    <img id="preview-img" alt="Preview"/>
+  </div>
+
+  <!-- Analyse -->
+  <button id="btn-analyse">▶ Analyse Image</button>
+
+  <!-- Scanning -->
+  <div id="scanning">
+    <div class="scan-bar"><div class="scan-fill"></div></div>
+    <div class="scan-text">SCANNING IMAGE...</div>
+  </div>
+
+  <!-- Result -->
+  <div id="result">
+    <div class="result-banner" id="result-banner">
+      <div class="result-icon" id="result-icon"></div>
+      <div>
+        <div class="result-label" id="result-label"></div>
+        <div class="result-sub" id="result-sub"></div>
+      </div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-label">// spillover probability</div>
+      <div class="prob-track">
+        <div class="prob-fill" id="prob-fill" style="width:0%"></div>
+      </div>
+      <div class="prob-value" id="prob-value">—</div>
+    </div>
+  </div>
+
+  <button id="btn-reset">↺ Scan Another Image</button>
+
+  <footer>Dustbin Management Committee (DMC) · v1.0 · YOLOv8-based detector</footer>
+</div>
+
+<script>
+  let capturedBlob = null;
+  let stream = null;
+
+  const fileInput      = document.getElementById('file-input');
+  const uploadZone     = document.getElementById('upload-zone');
+  const btnCamera      = document.getElementById('btn-camera');
+  const cameraSection  = document.getElementById('camera-section');
+  const cameraFeed     = document.getElementById('camera-feed');
+  const canvas         = document.getElementById('canvas');
+  const btnCapture     = document.getElementById('btn-capture');
+  const btnCancel      = document.getElementById('btn-cancel');
+  const previewSection = document.getElementById('preview-section');
+  const previewImg     = document.getElementById('preview-img');
+  const btnAnalyse     = document.getElementById('btn-analyse');
+  const scanning       = document.getElementById('scanning');
+  const result         = document.getElementById('result');
+  const btnReset       = document.getElementById('btn-reset');
+
+  // Drag-over style
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file) {
+    capturedBlob = file;
+    const url = URL.createObjectURL(file);
+    previewImg.src = url;
+    previewSection.style.display = 'block';
+    btnAnalyse.style.display = 'block';
+    result.style.display = 'none';
+    btnReset.style.display = 'none';
+  }
+
+  // Camera
+  btnCamera.addEventListener('click', async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      cameraFeed.srcObject = stream;
+      cameraSection.style.display = 'block';
+      uploadZone.style.display = 'none';
+      btnCamera.style.display = 'none';
+      document.querySelector('.divider').style.display = 'none';
+    } catch (e) {
+      alert('Camera access denied or unavailable.');
+    }
+  });
+
+  btnCapture.addEventListener('click', () => {
+    canvas.width  = cameraFeed.videoWidth;
+    canvas.height = cameraFeed.videoHeight;
+    canvas.getContext('2d').drawImage(cameraFeed, 0, 0);
+    canvas.toBlob(blob => {
+      capturedBlob = blob;
+      previewImg.src = canvas.toDataURL('image/jpeg');
+      stopCamera();
+      previewSection.style.display = 'block';
+      cameraSection.style.display = 'none';
+      btnAnalyse.style.display = 'block';
+    }, 'image/jpeg', 0.95);
+  });
+
+  btnCancel.addEventListener('click', () => {
+    stopCamera();
+    cameraSection.style.display = 'none';
+    uploadZone.style.display = 'block';
+    btnCamera.style.display = 'flex';
+    document.querySelector('.divider').style.display = 'flex';
+  });
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  }
+
+  // Analyse
+  btnAnalyse.addEventListener('click', async () => {
+    if (!capturedBlob) return;
+
+    btnAnalyse.style.display = 'none';
+    scanning.style.display = 'block';
+    result.style.display = 'none';
+    btnReset.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('image', capturedBlob, 'image.jpg');
+
+    try {
+      const res  = await fetch('/predict', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      scanning.style.display = 'none';
+      showResult(data);
+    } catch (e) {
+      scanning.style.display = 'none';
+      alert('Error connecting to server. Is Flask running?');
+      btnAnalyse.style.display = 'block';
+    }
+  });
+
+  function showResult(data) {
+    const banner   = document.getElementById('result-banner');
+    const icon     = document.getElementById('result-icon');
+    const label    = document.getElementById('result-label');
+    const sub      = document.getElementById('result-sub');
+    const probFill = document.getElementById('prob-fill');
+    const probVal  = document.getElementById('prob-value');
+
+    const pct = Math.round(data.probability * 100);
+
+    if (data.action_required) {
+      banner.className = 'result-banner danger';
+      icon.textContent = '🚨';
+      label.textContent = 'DMC Action Required';
+      sub.textContent  = 'Spillover detected near dustbin';
+      probFill.className = 'prob-fill danger';
+    } else {
+      banner.className = 'result-banner safe';
+      icon.textContent = '✅';
+      label.textContent = 'No Action Needed';
+      sub.textContent  = 'Area is clean — no spillover detected';
+      probFill.className = 'prob-fill safe';
+    }
+
+    result.style.display = 'block';
+    btnReset.style.display = 'block';
+
+    // Animate probability bar
+    setTimeout(() => {
+      probFill.style.width = pct + '%';
+      probVal.textContent  = pct + '% spillover probability';
+    }, 100);
+  }
+
+  // Reset
+  btnReset.addEventListener('click', () => {
+    capturedBlob = null;
+    fileInput.value = '';
+    previewImg.src = '';
+    previewSection.style.display = 'none';
+    result.style.display = 'none';
+    btnReset.style.display = 'none';
+    btnAnalyse.style.display = 'none';
+    uploadZone.style.display = 'block';
+    btnCamera.style.display = 'flex';
+    document.querySelector('.divider').style.display = 'flex';
+    document.getElementById('prob-fill').style.width = '0%';
+  });
+</script>
+</body>
+</html>
